@@ -1,12 +1,13 @@
 .env
-logs/
-reports/
-attachments/*
-!attachments/.gitkeep
 __pycache__/
 *.pyc
 .venv/
 venv/
+
+lexor-email/logs/
+lexor-email/reports/
+lexor-email/attachments/*
+!lexor-email/attachments/.gitkeep
 
 lexor-apply/applyTask.txt
 lexor-apply/getTasks.txt
