@@ -24,8 +24,10 @@ gmail:
   reply_to: ""
 
 email:
-  # Subject line. {placeholders} are filled per-recipient from recipients.csv.
-  subject: "Application for the {role} role - {sender_name}"
+  # Subject line. {placeholders} are filled per-recipient from the CSV.
+  # Available placeholders: {name}, {email} (per recipient)
+  #                         {sender_name}, {sender_email} (from gmail config)
+  subject: "Introduction & CV - {sender_name}"
 
   # Path (relative to this folder) to the markdown body.
   body_markdown_path: "email_body.md"
@@ -35,7 +37,9 @@ email:
     - "attachments/CV.pdf"
 
   # CSV with at least an "email" column. Extra columns become {placeholders}.
-  recipients_csv: "recipients.csv"
+  # We point at emails.csv (columns: SNo, Name, Email, Title, Company).
+  # Header names are matched case-insensitively, so "Email" / "Name" work.
+  recipients_csv: "emails.csv"
 
   # Optional CC / BCC (apply to every recipient).
   cc: []

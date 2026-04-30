@@ -662,6 +662,25 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Render & validate everything but do not connect to Gmail.",
     )
     parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help=(
+            "Send to at most N recipients from the loaded list (after dedupe). "
+            "Useful for staying under Gmail's daily quota (500/day for free, "
+            "2000/day for Workspace) when the CSV is large. 0 = no limit."
+        ),
+    )
+    parser.add_argument(
+        "--start",
+        type=int,
+        default=0,
+        help=(
+            "Skip the first N recipients before applying --limit. "
+            "Lets you resume across days, e.g. --start 500 --limit 500."
+        ),
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -722,13 +741,41 @@ def run(argv: Optional[List[str]] = None) -> int:
         write_reports(sent, failed, skipped, run_meta, logger)
         return 2
 
-    logger.info("Loaded %d recipients", len(recipients))
+    total_loaded = len(recipients)
+    if args.start > 0:
+        recipients = recipients[args.start:]
+        logger.info("Skipped first %d recipients (--start)", args.start)
+    if args.limit > 0:
+        recipients = recipients[: args.limit]
+        logger.info("Capped to %d recipients (--limit)", args.limit)
+    logger.info(
+        "Recipients: %d will be processed (out of %d total in CSV)",
+        len(recipients),
+        total_loaded,
+    )
+    if not recipients:
+        logger.error("--start/--limit produced an empty recipient slice. Aborting.")
+        run_meta["finished_at"] = _ts()
+        run_meta["fatal_error"] = "empty slice after --start/--limit"
+        write_reports(sent, failed, skipped, run_meta, logger)
+        return 2
+    run_meta["recipient_window"] = {
+        "total_in_csv": total_loaded,
+        "start": args.start,
+        "limit": args.limit,
+        "processed": len(recipients),
+    }
 
     body_text = run_cfg.body_markdown_path.read_text(encoding="utf-8")
 
+    sender_ctx = {
+        "sender_name": gmail_cfg.sender_name,
+        "sender_email": gmail_cfg.sender_email,
+    }
+
     if args.dry_run:
         sample = recipients[0]
-        ctx = {**sample.fields, "name": sample.name, "email": sample.email}
+        ctx = {**sender_ctx, **sample.fields, "name": sample.name, "email": sample.email}
         plain, html = render_body(body_text, ctx)
         rendered_subject = run_cfg.subject.format_map(
             {**ctx, **{"name": sample.name}}
@@ -747,7 +794,7 @@ def run(argv: Optional[List[str]] = None) -> int:
     try:
         with GmailSender(gmail_cfg, logger) as sender:
             for idx, rcpt in enumerate(recipients, start=1):
-                ctx = {**rcpt.fields, "name": rcpt.name, "email": rcpt.email}
+                ctx = {**sender_ctx, **rcpt.fields, "name": rcpt.name, "email": rcpt.email}
                 try:
                     plain, html = render_body(body_text, ctx)
                     rendered_subject = run_cfg.subject.format_map(
