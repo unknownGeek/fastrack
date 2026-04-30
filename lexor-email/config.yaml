@@ -1,0 +1,50 @@
+# =====================================================================
+# lexor-email configuration
+# =====================================================================
+# Quick start:
+#   1. Set gmail.sender_email to your Gmail address.
+#   2. Generate a Gmail App Password (see README.md) and either:
+#        - paste it into gmail.app_password below, OR
+#        - export it as the GMAIL_APP_PASSWORD env var, OR
+#        - put it in a local .env file (recommended).
+#   3. Edit email_body.md, recipients.csv, and drop a CV into attachments/.
+#   4. Run:  python send_email.py --dry-run   (preview)
+#            python send_email.py             (send for real)
+# =====================================================================
+
+gmail:
+  sender_email: "hemantkushwah45@gmail.com"
+  sender_name: "Hemant Kushwah"
+  # Leave blank if you set GMAIL_APP_PASSWORD as an env var or in .env.
+  # 16 characters, no spaces. Example: "abcd efgh ijkl mnop" -> "abcdefghijklmnop"
+  app_password: ""
+  # true = SMTP_SSL on 465 (recommended). false = STARTTLS on 587.
+  use_ssl: true
+  # Optional: a different reply-to address.
+  reply_to: ""
+
+email:
+  # Subject line. {placeholders} are filled per-recipient from recipients.csv.
+  subject: "Application for the {role} role - {sender_name}"
+
+  # Path (relative to this folder) to the markdown body.
+  body_markdown_path: "email_body.md"
+
+  # Files to attach. Relative paths resolve from this folder.
+  attachments:
+    - "attachments/CV.pdf"
+
+  # CSV with at least an "email" column. Extra columns become {placeholders}.
+  recipients_csv: "recipients.csv"
+
+  # Optional CC / BCC (apply to every recipient).
+  cc: []
+  bcc: []
+
+  # Friendly throttle so Gmail does not flag you as a bulk sender.
+  # Gmail limit (free): 500 messages / 24h. Workspace: 2000 / 24h.
+  send_delay_seconds: 1.5
+
+  # Per-message retry policy on transient SMTP / network errors.
+  max_retries: 3
+  retry_backoff_seconds: 5.0

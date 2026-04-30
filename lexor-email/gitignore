@@ -1,0 +1,9 @@
+.env
+logs/
+reports/
+attachments/*
+!attachments/.gitkeep
+__pycache__/
+*.pyc
+.venv/
+venv/
